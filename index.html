@@ -470,6 +470,19 @@
     }
     .mob-btn:hover { opacity: 0.88; transform: scale(1.02); }
 
+    /* ── YouTube Carousel – pseudo/state/media only ─── */
+    .yt-arrow { transition: background 0.2s, transform 0.15s; }
+    .yt-arrow:hover { background: var(--grad-cta); transform: translateY(-50%) scale(1.1); }
+    .yt-arrow:focus-visible { outline: 2px solid #F72585; outline-offset: 2px; }
+    .yt-dot { transition: background 0.2s, transform 0.2s; }
+    .yt-dot.active { background: #F72585 !important; transform: scale(1.35); }
+    .yt-dot:focus-visible { outline: 2px solid #F72585; outline-offset: 3px; }
+    @media (max-width: 599px) {
+      .yt-prev { left: -12px !important; }
+      .yt-next { right: -12px !important; }
+      .yt-arrow { width: 36px !important; height: 36px !important; font-size: 14px !important; }
+    }
+
     /* ── Responsive ────────────────────────────────────── */
     @media (max-width: 599px) {
       .nav-links { display: none; }
@@ -712,22 +725,16 @@
     <h2 class="sec-title" style="color: white;">Real Businesses. <span class="highlight">Real Results.</span></h2>
     <p class="sec-sub">These outcomes reflect what our clients have experienced. Every business is different — these are their words, not guarantees.</p>
 
-    <div class="testi-grid">
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Within 6 weeks our incoming calls from Google increased noticeably. Customers told us they 'couldn't find us before'. Now they call us first. Completely worth every dollar."</p>
-        <div class="testi-by">— Marcus T., Plumbing Company &bull; Houston, TX</div>
+    <!-- ── YouTube video carousel ─────────────────────────── -->
+    <div id="ytCarousel" role="region" aria-label="Video reviews" style="position:relative;max-width:380px;margin:0 auto;">
+      <div style="overflow:hidden;border-radius:16px;background:#000;">
+        <div id="ytTrack" style="display:flex;transition:transform 0.42s cubic-bezier(0.25,0.46,0.45,0.94);will-change:transform;"></div>
       </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"I was spending on ads with mediocre results. Benzify cleaned up our GBP and started posting consistently. Now we get organic leads every single week. The no-contract thing made it an easy yes."</p>
-        <div class="testi-by">— Sandra R., Salon Owner &bull; Phoenix, AZ</div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"The monthly reports are honest and clear. They show exactly what's improving. Our direction requests and profile views have both gone up significantly. They do what they say they'll do."</p>
-        <div class="testi-by">— David K., HVAC Business &bull; Charlotte, NC</div>
-      </div>
+      <button class="yt-arrow yt-prev" id="ytPrev" aria-label="Previous review" type="button"
+        style="position:absolute;top:50%;transform:translateY(-50%);left:-22px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,0.22);background:rgba(30,5,60,0.75);backdrop-filter:blur(8px);color:#fff;font-size:18px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;">&#8592;</button>
+      <button class="yt-arrow yt-next" id="ytNext" aria-label="Next review" type="button"
+        style="position:absolute;top:50%;transform:translateY(-50%);right:-22px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,0.22);background:rgba(30,5,60,0.75);backdrop-filter:blur(8px);color:#fff;font-size:18px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;">&#8594;</button>
+      <div id="ytDots" role="tablist" aria-label="Jump to review" style="display:flex;justify-content:center;gap:8px;margin-top:20px;"></div>
     </div>
   </div>
 </section>
@@ -983,13 +990,13 @@
   </p>
 
   <ul class="footer-links">
-    <li><a href="#" class="tos-link">Terms of Service</a></li>
-    <li><a href="#" class="pp-link">Privacy Policy</a></li>
-    <li><a href="mailto:hello@benzify.com">Contact</a></li>
+    <li><a href="https://benzify.us/privacy-policy/" class="tos-link">Terms of Service</a></li>
+    <li><a href="https://benzify.us/privacy-policy/" class="pp-link">Privacy Policy</a></li>
+    <li><a href="mailto:info@benzify.com">Contact</a></li>
   </ul>
 
   <p class="footer-copy">
-    &copy; 2025 Benzify. All rights reserved.<br>
+    &copy; 2026 Benzify. All rights reserved.<br>
     Results vary by business and market. No specific Google rankings are guaranteed.
   </p>
 </footer>
@@ -1013,6 +1020,87 @@
   // const CHECKOUT_URL = "https://benzify.us/gmb-optimization-checkout/";
   const TERMS_URL    = "https://benzify.com/terms";
   const PRIVACY_URL  = "https://benzify.com/privacy";
+
+  // ── Video Review Carousel — plug in your WordPress video URLs here ─────
+  // Paste the direct .mp4 (or .mov/.webm) URL from your WordPress media library
+  var REVIEWS = [
+    { src: 'https://benzify.us/wp-content/uploads/2026/03/toryvan.mov', label: 'Customer Review 1' },
+    { src: 'https://benzify.us/wp-content/uploads/2026/03/review-2-gmb.mov', label: 'Customer Review 2' },
+    { src: 'https://benzify.us/wp-content/uploads/2026/03/review-3-gmb.mp4', label: 'Customer Review 3' },
+  ];
+
+  (function initCarousel() {
+    var track   = document.getElementById('ytTrack');
+    var dotsEl  = document.getElementById('ytDots');
+    var btnPrev = document.getElementById('ytPrev');
+    var btnNext = document.getElementById('ytNext');
+    var current = 0;
+    var total   = REVIEWS.length;
+
+    // Carousel width — portrait videos (9:16). Change to '800px' for landscape.
+    document.getElementById('ytCarousel').style.maxWidth = '380px';
+
+    // Build slides + dots
+    REVIEWS.forEach(function(r, i) {
+      var slide = document.createElement('div');
+      slide.setAttribute('role', 'tabpanel');
+      slide.setAttribute('aria-label', r.label);
+      slide.style.cssText = 'flex-shrink:0;width:100%;';
+      slide.innerHTML =
+        '<div style="position:relative;padding-bottom:177.78%;height:0;overflow:hidden;border-radius:16px;background:#000;">' +
+          '<video ' +
+            'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;" ' +
+            'src="' + r.src + '" ' +
+            'title="' + r.label + '" ' +
+            'controls playsinline preload="none">' +
+          '</video>' +
+        '</div>';
+      track.appendChild(slide);
+
+      var dot = document.createElement('button');
+      dot.className = 'yt-dot' + (i === 0 ? ' active' : '');
+      dot.style.cssText = 'width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.25);border:none;padding:0;cursor:pointer;';
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', r.label);
+      dot.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+      (function(idx) {
+        dot.addEventListener('click', function() { goTo(idx); });
+      })(i);
+      dotsEl.appendChild(dot);
+    });
+
+    function goTo(idx) {
+      current = ((idx % total) + total) % total;
+      track.style.transform = 'translateX(-' + (current * 100) + '%)';
+      dotsEl.querySelectorAll('.yt-dot').forEach(function(d, i) {
+        d.classList.toggle('active', i === current);
+        d.setAttribute('aria-selected', i === current ? 'true' : 'false');
+      });
+      btnPrev.style.visibility = total > 1 ? 'visible' : 'hidden';
+      btnNext.style.visibility = total > 1 ? 'visible' : 'hidden';
+    }
+
+    btnPrev.addEventListener('click', function() { goTo(current - 1); });
+    btnNext.addEventListener('click', function() { goTo(current + 1); });
+
+    // Keyboard arrow support
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowLeft')  goTo(current - 1);
+      if (e.key === 'ArrowRight') goTo(current + 1);
+    });
+
+    // Touch swipe
+    var swipeStartX = 0;
+    track.addEventListener('touchstart', function(e) {
+      swipeStartX = e.touches[0].clientX;
+    }, { passive: true });
+    track.addEventListener('touchend', function(e) {
+      var diff = swipeStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 44) goTo(diff > 0 ? current + 1 : current - 1);
+    }, { passive: true });
+
+    goTo(0);
+  })();
 
   // ── Confetti ──────────────────────────────────────────────────
   (function buildConfetti() {
